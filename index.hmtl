@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Super Chef Timer App</title>
+    <style>
+        /* --- General Styling and Layout --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f8f8;
+            color: #333;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .app-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            min-height: 100vh;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            position: relative; /* For fixed elements */
+        }
+        .page {
+            padding: 15px;
+            display: none;
+            padding-top: 60px; /* Space for fixed header */
+        }
+        .header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background-color: #3f51b5; /* Indigo Header */
+            color: white;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.2em;
+            flex-grow: 1;
+            text-align: center;
+        }
+        .header-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+        }
+
+        /* --- Main Page (Recipe List) --- */
+        #search-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        #recipe-list-container {
+            list-style: none;
+            padding: 0;
+        }
+        .recipe-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            transition: background-color 0.1s;
+        }
+        .recipe-item-details {
+            display: flex;
+            flex-direction: column;
+        }
+        .recipe-item-title {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .recipe-item-category {
+            font-size: 0.8em;
+            color: #777;
+            margin-top: 3px;
+        }
+        .add-icon {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: #4CAF50; /* Green */
+            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            font-size: 30px;
+            line-height: 48px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 50;
+        }
+
+        /* --- Recipe Context Menu (3 dots) --- */
+        .context-menu {
+            position: absolute;
+            right: 0;
+            top: 40px;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 20;
+            display: none;
+        }
+        .context-menu button {
+            display: block;
+            width: 100%;
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .context-menu button:hover {
+            background-color: #f4f4f4;
+        }
+
+        /* --- Sidebar (Categories) --- */
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 100vh;
+            background: #f4f4f4;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 200;
+            padding-top: 60px;
+        }
+        #sidebar.open {
+            transform: translateX(0);
+        }
+        #category-list-container {
+            list-style: none;
+            padding: 10px 0;
+            margin: 0;
+        }
+        .category-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .category-item:hover, .category-item.selected {
+            background-color: #ddd;
+        }
+        .category-add-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        /* --- Recipe View Page (Active Cooking) --- */
+        .main-controls button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            margin-left: 5px;
+            font-weight: 500;
+        }
+        #btn-start { background-color: #4CAF50; }
+        #btn-pause { background-color: #FF9800; display: none; }
+        #btn-stop { background-color: #F44336; display: none; }
+        .overall-timer {
+            font-size: 1.2em;
+            font-weight: bold;
+            text-align: right;
+            margin-bottom: 15px;
+            color: #3f51b5;
+        }
+
+        /* Recipe Steps Table */
+        .step-row {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 10px;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .step-timer-display {
+            font-size: 0.9em;
+            color: #555;
+            min-width: 60px;
+            text-align: right;
+        }
+        .step-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .step-actions button {
+            border: none;
+            padding: 8px;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            line-height: 1;
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0.4;
+        }
+        .tick-btn { background-color: #C8E6C9; color: #4CAF50; }
+        .cross-btn { background-color: #FFCDD2; color: #F44336; }
+
+        /* Row Color States */
+        .state-disabled { background-color: #f4f4f4; color: #888; } /* Default/Yet to be active */
+        .state-active { background-color: #FFF9C4; color: #333; border: 1px solid #FFEB3B; } /* Active (Light Yellow) */
+        .state-completed { background-color: #BBDEFB; color: #3f51b5; } /* Completed (Light Blue) */
+        .state-skipped { background-color: #FFEBEE; color: #F44336; } /* Skipped (Light Red) */
+        
+        .state-active .step-actions button {
+            opacity: 1;
+        }
+
+        /* --- Add/Edit Page --- */
+        #add-page input[type="text"], #add-page input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .category-select-btn {
+            padding: 10px;
+            background-color: #E0E0E0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: block;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
+        .step-input-row {
+            display: grid;
+            grid-template-columns: 1fr 80px auto;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .step-input-row input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #step-add-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.5em;
+            line-height: 1;
+            margin-bottom: 20px;
+        }
+        #save-recipe-btn {
+            width: 100%;
+            background-color: #3f51b5;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+
+        /* --- Modal for Category Selection / Edit --- */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 400px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .modal-content h3 {
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .category-checkbox-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        .category-checkbox-list label {
+            display: block;
+            padding: 5px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <div class="header">
+        <button id="btn-sidebar-toggle" class="header-btn" onclick="toggleSidebar()">☰</button>
+        <h1 id="header-title"></h1>
+        <div id="header-controls">
+            </div>
+    </div>
+    
+    <div id="sidebar">
+        <div class="category-add-header">
+            <h3>Categories</h3>
+            <button class="header-btn" onclick="addNewCategory(true)">+</button>
+        </div>
+        <ul id="category-list-container">
+            </ul>
+    </div>
+    
+    <div id="main-page" class="page">
+        <input type="text" id="search-input" placeholder="🔍 Search Recipes by Title">
+        <ul id="recipe-list-container">
+            </ul>
+        <div class="add-icon" onclick="openAddEditPage()">+</div>
+    </div>
+    
+    <div id="recipe-view-page" class="page">
+        <h2 id="recipe-view-title">
+            <span id="recipe-title-span"></span>
+            <div class="main-controls">
+                <button id="btn-start" onclick="startRecipe()">Start</button>
+                <button id="btn-pause" onclick="pauseRecipe()">Pause</button>
+                <button id="btn-stop" onclick="stopRecipe()">Stop</button>
+            </div>
+        </h2>
+        <div class="overall-timer">Total Time: <span id="overall-timer-display">00:00:00</span></div>
+        <div id="step-rows-container">
+            </div>
+    </div>
+    
+    <div id="add-page" class="page">
+        <h2 id="add-page-title">Add New Recipe</h2>
+        <input type="text" id="recipe-title-input" placeholder="Recipe Title" required>
+        
+        <button class="category-select-btn" onclick="openCategoryModal()">
+            Categories: <span id="selected-categories-display">None Selected</span>
+        </button>
+
+        <h3>Steps</h3>
+        <div id="step-inputs-container">
+            </div>
+        
+        <button id="step-add-btn" onclick="addStepInputRow()">+</button>
+        <button id="save-recipe-btn" onclick="saveNewRecipe()">Save Recipe</button>
+    </div>
+
+</div>
+
+<div class="context-menu" id="recipe-context-menu">
+    <button onclick="editRecipeFromMenu()">Edit</button>
+    <button onclick="renameRecipeFromMenu()">Rename</button>
+    <button onclick="deleteRecipeFromMenu()" style="color: red;">Delete</button>
+</div>
+
+<div id="category-modal" class="modal" onclick="closeModal(event)">
+    <div class="modal-content">
+        <h3>Select Categories</h3>
+        <div id="category-checkbox-list" class="category-checkbox-list">
+            </div>
+        <button onclick="applyCategorySelection()" style="width: 100%; padding: 10px; background-color: #3f51b5; color: white; border: none; border-radius: 4px;">Done</button>
+    </div>
+</div>
+
+<script>
+    // --- CONSTANTS AND GLOBAL STATE ---
+    const STORAGE_RECIPES_KEY = 'superChefRecipes';
+    const STORAGE_CATEGORIES_KEY = 'superChefCategories';
+    
+    let recipes = [];
+    let categories = ['All']; // 'All' is the mandatory default category
+    let currentRecipe = null;
+    let currentRecipeIndex = -1; // Index in the 'recipes' array for editing/viewing
+    let currentCategoryFilter = 'All';
+    let currentRecipeCategories = []; // Categories selected for the recipe currently being edited
+    let isEditing = false;
+    
+    // Timer State
+    let currentStepIndex = -1;
+    let overallTimerInterval = null;
+    let stepTimerIntervals = [];
+    let overallStartTime = 0;
+    let overallPausedTime = 0;
+    let isPaused = false;
+    let stepRemainingTimes = []; // Stores remaining time for pause/resume
+
+    // --- UTILITY FUNCTIONS ---
+    
+    function formatTime(ms) {
+        if (ms < 0) ms = 0;
+        let totalSeconds = Math.floor(ms / 1000);
+        let hours = Math.floor(totalSeconds / 3600);
+        let minutes = Math.floor((totalSeconds % 3600) / 60);
+        let seconds = totalSeconds % 60;
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+    
+    function showPage(pageId, title = '') {
+        document.querySelectorAll('.page').forEach(page => page.style.display = 'none');
+        document.getElementById(pageId).style.display = 'block';
+        document.getElementById('header-title').textContent = title;
+        document.getElementById('recipe-context-menu').style.display = 'none'; // Hide context menu
+
+        const headerControls = document.getElementById('header-controls');
+        headerControls.innerHTML = '';
+        document.getElementById('btn-sidebar-toggle').style.display = 'inline-block';
+        
+        if (pageId === 'main-page') {
+            document.getElementById('header-title').textContent = currentCategoryFilter;
+        } else if (pageId === 'recipe-view-page' || pageId === 'add-page') {
+            headerControls.innerHTML = '<button class="header-btn" onclick="showPage(\'main-page\')">Back</button>';
+            document.getElementById('btn-sidebar-toggle').style.display = 'none';
+        }
+    }
+    
+    function closeModal(event) {
+        if (event.target.classList.contains('modal')) {
+            document.getElementById('category-modal').style.display = 'none';
+        }
+    }
+
+    // --- DATA MANAGEMENT (Local Storage) ---
+
+    function loadData() {
+        const storedRecipes = localStorage.getItem(STORAGE_RECIPES_KEY);
+        recipes = storedRecipes ? JSON.parse(storedRecipes) : [];
+
+        const storedCategories = localStorage.getItem(STORAGE_CATEGORIES_KEY);
+        let loadedCategories = storedCategories ? JSON.parse(storedCategories) : [];
+        
+        // Ensure 'All' is always present and first
+        if (!loadedCategories.includes('All')) {
+            loadedCategories.unshift('All');
+        }
+        categories = loadedCategories;
+        
+        renderCategoryList();
+        renderRecipeList();
+    }
+
+    function saveRecipes() {
+        localStorage.setItem(STORAGE_RECIPES_KEY, JSON.stringify(recipes));
+    }
+    
+    function saveCategories() {
+        localStorage.setItem(STORAGE_CATEGORIES_KEY, JSON.stringify(categories));
+    }
+
+    // --- SIDEBAR & CATEGORY LOGIC ---
+    
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+    }
+    
+    function renderCategoryList() {
+        const container = document.getElementById('category-list-container');
+        container.innerHTML = '';
+
+        categories.forEach(cat => {
+            const li = document.createElement('li');
+            li.className = 'category-item' + (currentCategoryFilter === cat ? ' selected' : '');
+            li.textContent = cat;
+            li.onclick = () => filterRecipesByCategory(cat);
+            container.appendChild(li);
+        });
+    }
+
+    function addNewCategory(promptUser = false) {
+        if (promptUser) {
+            const newCat = prompt("Enter new category name:");
+            if (newCat && newCat.trim() !== '' && !categories.includes(newCat.trim())) {
+                categories.push(newCat.trim());
+                saveCategories();
+                renderCategoryList();
+            }
+        }
+        // This function is also called by the add/edit page logic to re-render the modal
+        renderCategoryModalCheckboxes();
+    }
+    
+    function filterRecipesByCategory(cat) {
+        currentCategoryFilter = cat;
+        renderRecipeList();
+        toggleSidebar();
+    }
+
+    // --- MAIN PAGE LOGIC ---
+
+    function renderRecipeList(filteredRecipes = null) {
+        const container = document.getElementById('recipe-list-container');
+        container.innerHTML = '';
+        
+        const listToRender = filteredRecipes || recipes.filter(r => 
+            currentCategoryFilter === 'All' || r.categories.includes(currentCategoryFilter)
+        );
+
+        if (listToRender.length === 0) {
+            container.innerHTML = `<p>No recipes found in the "${currentCategoryFilter}" category. Click + to add one!</p>`;
+            return;
+        }
+
+        listToRender.forEach((recipe, index) => {
+            // Find the original index in the 'recipes' array
+            const originalIndex = recipes.findIndex(r => r.title === recipe.title);
+
+            const li = document.createElement('li');
+            li.className = 'recipe-item';
+            li.dataset.index = originalIndex;
+            li.onclick = (e) => {
+                if (!e.target.closest('.recipe-context-trigger')) {
+                    loadRecipeForView(originalIndex);
+                }
+            };
+            li.innerHTML = `
+                <div class="recipe-item-details">
+                    <span class="recipe-item-title">${recipe.title}</span>
+                    <span class="recipe-item-category">${recipe.categories.join(', ') || 'No Category'}</span>
+                </div>
+                <div style="position: relative;">
+                    <button class="header-btn recipe-context-trigger" onclick="openContextMenu(event, ${originalIndex})">⋮</button>
+                </div>
+            `;
+            container.appendChild(li);
+        });
+        showPage('main-page');
+    }
+    
+    document.getElementById('search-input').addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        const filtered = recipes.filter(r => 
+            (currentCategoryFilter === 'All' || r.categories.includes(currentCategoryFilter)) &&
+            r.title.toLowerCase().includes(query)
+        );
+        renderRecipeList(filtered);
+    });
+
+    // --- CONTEXT MENU (3 Dots) LOGIC ---
+    
+    let contextMenuTargetIndex = -1; // Tracks which recipe index the menu is open for
+
+    function openContextMenu(e, index) {
+        e.stopPropagation(); // Stop click from bubbling up to the list item's onclick
+        const menu = document.getElementById('recipe-context-menu');
+        contextMenuTargetIndex = index;
+        
+        // Position the menu near the clicked button
+        const buttonRect = e.target.getBoundingClientRect();
+        menu.style.display = 'block';
+        menu.style.left = (buttonRect.left - menu.offsetWidth + buttonRect.width) + 'px';
+        menu.style.top = (buttonRect.bottom + window.scrollY - 10) + 'px';
+        
+        // Hide menu on any subsequent click outside of it
+        document.addEventListener('click', hideContextMenu, { once: true });
+    }
+
+    function hideContextMenu() {
+        document.getElementById('recipe-context-menu').style.display = 'none';
+        document.removeEventListener('click', hideContextMenu);
+    }
+    
+    function editRecipeFromMenu() {
+        hideContextMenu();
+        openAddEditPage(contextMenuTargetIndex);
+    }
+
+    function renameRecipeFromMenu() {
+        hideContextMenu();
+        const recipe = recipes[contextMenuTargetIndex];
+        const newTitle = prompt(`Rename "${recipe.title}":`, recipe.title);
+        
+        if (newTitle && newTitle.trim() !== '' && newTitle.trim() !== recipe.title) {
+            recipe.title = newTitle.trim();
+            saveRecipes();
+            renderRecipeList();
+        }
+    }
+
+    function deleteRecipeFromMenu() {
+        hideContextMenu();
+        const recipe = recipes[contextMenuTargetIndex];
+        if (confirm(`Are you sure you want to delete "${recipe.title}"?`)) {
+            recipes.splice(contextMenuTargetIndex, 1);
+            saveRecipes();
+            renderRecipeList();
+        }
+    }
+
+    // --- ADD/EDIT PAGE LOGIC ---
+
+    function openAddEditPage(index = -1) {
+        const titleInput = document.getElementById('recipe-title-input');
+        const stepContainer = document.getElementById('step-inputs-container');
+        const pageTitle = document.getElementById('add-page-title');
+        
+        currentRecipeIndex = index;
+        stepContainer.innerHTML = '';
+        
+        if (index === -1) { // New Recipe
+            isEditing = false;
+            pageTitle.textContent = 'Add New Recipe';
+            titleInput.value = '';
+            currentRecipeCategories = [];
+            addStepInputRow();
+        } else { // Edit Existing Recipe
+            isEditing = true;
+            pageTitle.textContent = 'Edit Recipe';
+            const recipe = recipes[index];
+            titleInput.value = recipe.title;
+            currentRecipeCategories = [...recipe.categories]; // Copy current categories
+            
+            recipe.steps.forEach(step => {
+                addStepInputRow(step.description, step.timeMinutes);
+            });
+            if (recipe.steps.length === 0) addStepInputRow();
+        }
+
+        updateCategoryDisplay();
+        showPage('add-page', pageTitle.textContent);
+    }
+
+    function updateCategoryDisplay() {
+        const display = document.getElementById('selected-categories-display');
+        display.textContent = currentRecipeCategories.length > 0 
+            ? currentRecipeCategories.join(', ') 
+            : 'None Selected';
+    }
+
+    function renderCategoryModalCheckboxes() {
+        const container = document.getElementById('category-checkbox-list');
+        container.innerHTML = '';
+        
+        categories.filter(c => c !== 'All').forEach(cat => {
+            const isChecked = currentRecipeCategories.includes(cat);
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" value="${cat}" ${isChecked ? 'checked' : ''}> ${cat}`;
+            container.appendChild(label);
+        });
+    }
+
+    function openCategoryModal() {
+        renderCategoryModalCheckboxes();
+        document.getElementById('category-modal').style.display = 'flex';
+    }
+
+    function applyCategorySelection() {
+        currentRecipeCategories = [];
+        document.querySelectorAll('#category-checkbox-list input:checked').forEach(checkbox => {
+            currentRecipeCategories.push(checkbox.value);
+        });
+        updateCategoryDisplay();
+        document.getElementById('category-modal').style.display = 'none';
+    }
+
+    function addStepInputRow(description = '', time = '') {
+        const container = document.getElementById('step-inputs-container');
+        const row = document.createElement('div');
+        row.className = 'step-input-row';
+        row.innerHTML = `
+            <input type="text" class="step-desc-input" placeholder="Step Description" value="${description}">
+            <input type="number" class="step-time-input" placeholder="Mins" min="0" value="${time}">
+            <button onclick="this.parentNode.remove()" style="background: none; color: #F44336; border: none; font-size: 1.5em; line-height: 1; cursor: pointer;">&times;</button>
+        `;
+        container.appendChild(row);
+    }
+
+    function saveNewRecipe() {
+        const title = document.getElementById('recipe-title-input').value.trim();
+        if (!title) {
+            alert("Please enter a Recipe Title.");
+            return;
+        }
+
+        const steps = [];
+        const stepRows = document.querySelectorAll('#step-inputs-container .step-input-row');
+        
+        stepRows.forEach(row => {
+            const desc = row.querySelector('.step-desc-input').value.trim();
+            const time = parseInt(row.querySelector('.step-time-input').value) || 0;
+            if (desc) {
+                steps.push({ description: desc, timeMinutes: time, state: 'disabled' });
+            }
+        });
+
+        if (steps.length === 0) {
+             alert("Please ensure at least one step has a description.");
+            return;
+        }
+
+        const newRecipe = { 
+            title: title, 
+            categories: currentRecipeCategories, 
+            steps: steps 
+        };
+
+        if (isEditing) {
+            recipes[currentRecipeIndex] = newRecipe; // Overwrite
+        } else {
+            recipes.push(newRecipe); // Add new
+        }
+
+        saveRecipes();
+        alert(`Recipe "${title}" saved!`);
+        renderRecipeList();
+    }
+
+    // --- RECIPE VIEW (ACTIVE COOKING) LOGIC ---
+
+    function loadRecipeForView(index) {
+        currentRecipe = JSON.parse(JSON.stringify(recipes[index])); // Deep copy
+        currentRecipeIndex = index;
+
+        // Reset state
+        currentStepIndex = -1;
+        resetOverallTimer();
+        stopAllStepTimers();
+        
+        // Mark all steps as 'disabled' initially
+        currentRecipe.steps.forEach(step => step.state = 'disabled');
+        
+        renderRecipeSteps();
+        
+        // Setup buttons and show page
+        showPage('recipe-view-page', currentRecipe.title);
+        document.getElementById('btn-start').style.display = 'inline-block';
+        document.getElementById('btn-pause').style.display = 'none';
+        document.getElementById('btn-stop').style.display = 'none';
+        document.getElementById('recipe-title-span').textContent = currentRecipe.title;
+    }
+    
+    function renderRecipeSteps() {
+        const container = document.getElementById('step-rows-container');
+        container.innerHTML = '';
+
+        currentRecipe.steps.forEach((step, index) => {
+            const row = document.createElement('div');
+            row.className = `step-row state-${step.state}`;
+            row.dataset.index = index;
+            
+            const isFinished = step.state === 'completed' || step.state === 'skipped';
+            const isActive = step.state === 'active';
+            
+            // Initial timer display
+            let timerContent = step.timeMinutes > 0 ? formatTime(step.timeMinutes * 60 * 1000) : '--:--:--';
+            
+            // If timer was running (and possibly paused), show the remaining time
+            if (isActive && stepRemainingTimes[index] !== undefined) {
+                 timerContent = formatTime(stepRemainingTimes[index]);
+            }
+            
+            row.innerHTML = `
+                <span class="step-description-text">${step.description}</span>
+                <span class="step-timer-display" id="step-timer-${index}">${timerContent}</span>
+                <div class="step-actions">
+                    <button class="tick-btn" onclick="markStep('completed', ${index})" ${!isActive || isFinished ? 'disabled' : ''}>✔</button>
+                    <button class="cross-btn" onclick="markStep('skipped', ${index})" ${!isActive || isFinished ? 'disabled' : ''}>&times;</button>
+                </div>
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    // --- TIMER AND CONTROL LOGIC ---
+
+    function startRecipe() {
+        if (currentRecipe.steps.length === 0) return;
+        
+        document.getElementById('btn-start').style.display = 'none';
+        document.getElementById('btn-pause').style.display = 'inline-block';
+        document.getElementById('btn-stop').style.display = 'inline-block';
+
+        // Start Overall Timer
+        if (overallStartTime === 0) {
+            overallStartTime = Date.now();
+        } else if (isPaused) {
+            overallStartTime += (Date.now() - overallPausedTime); // Adjust start time to ignore pause duration
+        }
+        isPaused = false;
+        startOverallTimerDisplay();
+        
+        // Activate the first step if not started, or resume the current one
+        if (currentStepIndex === -1) {
+            activateStep(0);
+        } else if (currentRecipe.steps[currentStepIndex].state === 'active') {
+            startStepTimer(currentStepIndex, stepRemainingTimes[currentStepIndex]); // Resume with remaining time
+        }
+    }
+    
+    function pauseRecipe() {
+        isPaused = true;
+        overallPausedTime = Date.now();
+        clearInterval(overallTimerInterval);
+        stopAllStepTimers(false); // Stop step intervals but don't reset remaining time
+        
+        document.getElementById('btn-pause').style.display = 'none';
+        document.getElementById('btn-start').textContent = 'Resume';
+        document.getElementById('btn-start').style.display = 'inline-block';
+    }
+
+    function stopRecipe() {
+        // Stop all timers
+        clearInterval(overallTimerInterval);
+        stopAllStepTimers(true); // Reset remaining times
+        
+        // Calculate final time (Stop time - Start time - (if paused, duration of last pause))
+        let finalTime = Date.now() - overallStartTime;
+        if(isPaused) {
+             // If stopped while paused, use the time up to the pause point
+             finalTime = overallPausedTime - overallStartTime;
+        }
+
+        document.getElementById('overall-timer-display').textContent = formatTime(finalTime);
+        alert(`Recipe stopped! Total time taken: ${formatTime(finalTime)}`);
+        
+        // Reset controls and state
+        document.getElementById('btn-start').textContent = 'Start';
+        loadRecipeForView(currentRecipeIndex); // Reset the view to initial state
+    }
+
+    function resetOverallTimer() {
+        clearInterval(overallTimerInterval);
+        overallTimerInterval = null;
+        overallStartTime = 0;
+        overallPausedTime = 0;
+        isPaused = false;
+        document.getElementById('overall-timer-display').textContent = '00:00:00';
+    }
+    
+    function startOverallTimerDisplay() {
+        if (overallTimerInterval) clearInterval(overallTimerInterval);
+        
+        overallTimerInterval = setInterval(() => {
+            if (!isPaused) {
+                const elapsed = Date.now() - overallStartTime;
+                document.getElementById('overall-timer-display').textContent = formatTime(elapsed);
+            }
+        }, 1000);
+    }
+
+    // --- STEP LOGIC ---
+    
+    function activateStep(index) {
+        // Check if all steps are done
+        if (index >= currentRecipe.steps.length) {
+            alert("All steps completed! Click STOP to finalize the total time.");
+            return;
+        }
+
+        // 1. Mark previous step as inactive and stop its timer
+        if (currentStepIndex !== -1) {
+            // Stop its running timer, but its state was already set by markStep
+            stopStepTimer(currentStepIndex, true); 
+        }
+
+        // 2. Set new active step
+        currentStepIndex = index;
+        const step = currentRecipe.steps[index];
+        step.state = 'active';
+
+        // 3. Render to update colors and enable buttons
+        renderRecipeSteps();
+
+        // 4. Start timer for the new active step
+        if (step.timeMinutes > 0 && !isPaused) {
+            const durationMs = step.timeMinutes * 60 * 1000;
+            startStepTimer(index, durationMs);
+        }
+    }
+    
+    function markStep(newState, index) {
+        if (index !== currentStepIndex || isPaused) return; 
+
+        currentRecipe.steps[index].state = newState === 'completed' ? 'completed' : 'skipped';
+        
+        // 1. Turn off step timer and alarm (stopStepTimer will update display)
+        stopStepTimer(index, true); 
+        
+        // 2. Activate the next step
+        activateStep(index + 1);
+    }
+    
+    function stopStepTimer(index, resetRemaining = true) {
+        if (stepTimerIntervals[index]) {
+            clearInterval(stepTimerIntervals[index]);
+            delete stepTimerIntervals[index];
+        }
+        
+        if (resetRemaining) {
+            delete stepRemainingTimes[index];
+            // Reset the display if the step was active and is now done
+            const step = currentRecipe.steps[index];
+            const display = document.getElementById(`step-timer-${index}`);
+            if (display) {
+                display.textContent = step.timeMinutes > 0 ? formatTime(step.timeMinutes * 60 * 1000) : '--:--:--';
+            }
+        }
+    }
+    
+    function stopAllStepTimers(resetRemaining = true) {
+        for (let i = 0; i < currentRecipe.steps.length; i++) {
+            stopStepTimer(i, resetRemaining);
+        }
+    }
+
+    function startStepTimer(index, initialDurationMs) {
+        const display = document.getElementById(`step-timer-${index}`);
+        let duration = initialDurationMs;
+        
+        if (stepRemainingTimes[index] !== undefined && initialDurationMs !== stepRemainingTimes[index]) {
+             // Resume from remaining time, unless explicitly starting a new timer
+             duration = stepRemainingTimes[index];
+        }
+
+        let endTime = Date.now() + duration;
+        
+        if (stepTimerIntervals[index]) clearInterval(stepTimerIntervals[index]); 
+
+        stepTimerIntervals[index] = setInterval(() => {
+            let remaining = endTime - Date.now();
+            stepRemainingTimes[index] = remaining; 
+
+            if (remaining <= 0) {
+                // 🚨 ALARM 🚨
+                clearInterval(stepTimerIntervals[index]);
+                delete stepTimerIntervals[index];
+                display.textContent = `🔔 TIME OVER!`;
+                
+                // Only alert if the user is not paused
+                if (!isPaused) {
+                    alert(`TIME OVER for step: ${currentRecipe.steps[index].description}!`);
+                }
+                return;
+            }
+
+            display.textContent = formatTime(remaining);
+        }, 1000);
+    }
+
+    // --- INITIALIZATION ---
+    window.onload = function() {
+        loadData();
+        showPage('main-page');
+    };
+</script>
+</body>
+</html>
