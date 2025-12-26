@@ -1,7 +1,7 @@
 {
   "name": "Apartment Maintenance",
   "short_name": "Maintenance",
-  "start_url": "Srivikram_maint_chatgpt_latest_version.html",
+  "start_url": "Srivikram_maint_latest_version.html",
   "display": "standalone",
   "background_color": "#1976d2",
   "theme_color": "#1976d2",
