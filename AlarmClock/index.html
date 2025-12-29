@@ -1,160 +1,389 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Easy Alarm</title>
+<title>Easy Alarm Clock</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="manifest" href="manifest.json">
+
+<!-- PWA -->
+<link rel="manifest" id="manifestLink">
+<meta name="theme-color" content="#1976d2">
 
 <style>
 body {
-  margin:0;
-  font-family: system-ui;
-  background:#f4f6f8;
+  margin: 0;
+  font-family: system-ui, Arial, sans-serif;
+  background: #f4f6f8;
+  color: #222;
 }
+
 header {
-  background:#1e88e5;
-  color:#fff;
-  padding:16px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-.clock {
-  font-size:40px;
-  text-align:center;
-  margin:20px 0;
-}
-.pane {
-  display:flex;
-  height:300px;
-}
-.left, .right {
-  overflow-y:auto;
-  padding:10px;
-}
-.left { width:35%; }
-.right { width:65%; }
-
-.num {
-  padding:10px;
-  margin:6px;
-  background:#fff;
-  border-radius:8px;
-  text-align:center;
-  cursor:pointer;
-  box-shadow:0 2px 4px rgba(0,0,0,.15);
+  background: #1976d2;
+  color: white;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-footer {
-  display:flex;
-  justify-content:space-between;
-  padding:16px;
+header h1 {
+  font-size: 18px;
+  margin: 0;
 }
+
 button {
-  background:#1e88e5;
-  color:white;
-  border:none;
-  padding:12px 18px;
-  border-radius:8px;
-  font-size:16px;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 14px;
 }
-input {
-  width:100%;
-  padding:10px;
-  font-size:16px;
+
+button.primary {
+  background: #1976d2;
+  color: white;
+}
+
+button.secondary {
+  background: #e0e0e0;
+}
+
+.container {
+  padding: 12px;
+}
+
+.clock-display {
+  font-size: 42px;
+  text-align: center;
+  margin: 20px 0;
+  font-weight: bold;
+}
+
+.time-pane {
+  display: flex;
+  gap: 10px;
+  height: 260px;
+}
+
+.left-pane {
+  width: 35%;
+  overflow-y: auto;
+}
+
+.right-pane {
+  width: 65%;
+  overflow-y: auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.grid.minutes {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.cell {
+  background: #e9ecef;
+  padding: 12px;
+  text-align: center;
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cell.active {
+  background: #1976d2;
+  color: white;
+  font-weight: bold;
+}
+
+.card {
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.row input, select {
+  flex: 1;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.hidden { display: none; }
+
+.alarm-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.big-time {
+  font-size: 60px;
+  text-align: center;
+  margin: 30px 0;
 }
 </style>
 </head>
 
 <body>
 
+<!-- ================= MAIN PAGE ================= -->
+<div id="page-main">
+
 <header>
-  <div>Easy Alarm</div>
-  <button onclick="location.href='settings.html'">Settings</button>
+  <h1>Easy Alarm</h1>
+  <button class="secondary" onclick="openSettings()">Settings</button>
 </header>
 
-<div class="clock" id="clock"></div>
+<div class="container">
 
-<div class="pane">
-  <div class="left" id="hours"></div>
-  <div class="right" id="minutes"></div>
+  <div class="clock-display" id="digitalClock"></div>
+
+  <div class="time-pane">
+    <div class="left-pane">
+      <div class="grid" id="hoursGrid"></div>
+    </div>
+
+    <div class="right-pane">
+      <div class="grid minutes" id="minutesGrid"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <input id="labelInput" placeholder="Label (optional)">
+  </div>
+
+  <div class="footer">
+    <select id="snoozeSelect">
+      <option value="5">Snooze 5 min</option>
+      <option value="10">Snooze 10 min</option>
+      <option value="15">Snooze 15 min</option>
+    </select>
+    <button class="primary" onclick="saveAlarm()">Save</button>
+  </div>
+
+</div>
 </div>
 
-<div style="padding:16px">
-  <input id="label" placeholder="Alarm Label">
+<!-- ================= SETTINGS ================= -->
+<div id="page-settings" class="hidden container">
+  <div class="card">
+    <h3>Alarm Sound</h3>
+    <input type="file" accept="audio/*" onchange="loadRingtone(event)">
+  </div>
+
+  <div class="card">
+    <h3>Volume</h3>
+    <input type="range" min="0" max="1" step="0.05" onchange="setVolume(this.value)">
+  </div>
+
+  <button class="primary" onclick="backMain()">Back</button>
 </div>
 
-<footer>
-  <select id="snooze">
-    <option value="5">Snooze 5 min</option>
-    <option value="10">Snooze 10 min</option>
-    <option value="15">Snooze 15 min</option>
-  </select>
-  <button onclick="saveAlarm()">Save</button>
-</footer>
+<!-- ================= ALARM LIST ================= -->
+<div id="page-list" class="hidden container">
+  <h3>Saved Alarms</h3>
+  <div id="alarmList"></div>
+  <button class="secondary" onclick="deleteSelected()">Delete Selected</button>
+  <button class="primary" onclick="backMain()">Back</button>
+</div>
+
+<!-- ================= RINGING ================= -->
+<div id="page-ring" class="hidden container">
+  <div class="big-time" id="ringTime"></div>
+  <button class="primary" onclick="stopAlarm()">Stop</button>
+  <button class="secondary" onclick="snoozeAlarm()">Snooze</button>
+</div>
+
+<audio id="alarmAudio" loop></audio>
 
 <script>
-let alarmTime = new Date();
+/* ================= STATE ================= */
+let baseTime = new Date();
+let extraHours = 0;
+let extraMinutes = 0;
+let selectedHourCell = null;
+let selectedMinuteCell = null;
+let alarms = JSON.parse(localStorage.getItem("alarms") || "[]");
+let ringtoneURL = localStorage.getItem("ringtone") || "";
+let volume = localStorage.getItem("volume") || 1;
+let ringingAlarm = null;
 
+/* ================= CLOCK ================= */
 function updateClock() {
-  let h = alarmTime.getHours();
-  let m = alarmTime.getMinutes();
-  let ampm = h >= 12 ? 'PM' : 'AM';
+  const t = new Date();
+  t.setHours(t.getHours() + extraHours);
+  t.setMinutes(t.getMinutes() + extraMinutes);
+
+  let h = t.getHours();
+  let m = t.getMinutes();
+  let ap = h >= 12 ? "PM" : "AM";
   h = h % 12 || 12;
-  document.getElementById("clock").innerText =
-    `${h}:${m.toString().padStart(2,'0')} ${ampm}`;
-}
-updateClock();
+  m = String(m).padStart(2, "0");
 
-for(let i=1;i<=12;i++){
-  let d=document.createElement('div');
-  d.className='num';
-  d.innerText=`+${i} hr`;
-  d.onclick=()=>{alarmTime.setHours(alarmTime.getHours()+i);updateClock();}
-  hours.appendChild(d);
+  digitalClock.textContent = `${h}:${m} ${ap}`;
+}
+setInterval(updateClock, 1000);
+
+/* ================= HOURS ================= */
+for (let i = 1; i <= 12; i++) {
+  const d = document.createElement("div");
+  d.className = "cell";
+  d.textContent = i;
+  d.onclick = () => {
+    if (selectedHourCell) selectedHourCell.classList.remove("active");
+    selectedHourCell = d;
+    d.classList.add("active");
+    extraHours = i;
+  };
+  hoursGrid.appendChild(d);
 }
 
-for(let i=1;i<=60;i++){
-  let d=document.createElement('div');
-  d.className='num';
-  d.innerText=`+${i} min`;
-  d.onclick=()=>{alarmTime.setMinutes(alarmTime.getMinutes()+i);updateClock();}
-  minutes.appendChild(d);
+/* ================= MINUTES ================= */
+for (let i = 1; i <= 60; i++) {
+  const d = document.createElement("div");
+  d.className = "cell";
+  d.textContent = i;
+  d.onclick = () => {
+    if (selectedMinuteCell) selectedMinuteCell.classList.remove("active");
+    selectedMinuteCell = d;
+    d.classList.add("active");
+    extraMinutes = i;
+  };
+  minutesGrid.appendChild(d);
 }
 
-function saveAlarm(){
-  let alarms = JSON.parse(localStorage.getItem("alarms")||"[]");
+/* ================= SAVE ALARM ================= */
+function saveAlarm() {
+  const now = new Date();
+  now.setHours(now.getHours() + extraHours);
+  now.setMinutes(now.getMinutes() + extraMinutes);
+
   alarms.push({
-    time: alarmTime.getTime(),
-    label: label.value,
-    snooze: snooze.value,
+    time: now.getTime(),
+    label: labelInput.value,
+    snooze: +snoozeSelect.value,
     enabled: true
   });
+
   localStorage.setItem("alarms", JSON.stringify(alarms));
-  location.href="alarms.html";
+  openList();
 }
 
-setInterval(()=>{
-  let alarms = JSON.parse(localStorage.getItem("alarms")||"[]");
-  let now = Date.now();
-  alarms.forEach((a,i)=>{
-    if(a.enabled && now>=a.time){
-      localStorage.setItem("ring", JSON.stringify(a));
-      location.href="ring.html";
-      a.enabled=false;
+/* ================= ALARM CHECK ================= */
+setInterval(() => {
+  const now = Date.now();
+  alarms.forEach(a => {
+    if (a.enabled && now >= a.time && !a.done) {
+      a.done = true;
+      ring(a);
     }
   });
   localStorage.setItem("alarms", JSON.stringify(alarms));
-},1000);
+}, 1000);
+
+/* ================= RING ================= */
+function ring(alarm) {
+  ringingAlarm = alarm;
+  page-main.classList.add("hidden");
+  page-ring.classList.remove("hidden");
+  ringTime.textContent = new Date().toLocaleTimeString();
+  alarmAudio.src = ringtoneURL;
+  alarmAudio.volume = volume;
+  alarmAudio.play();
+}
+
+function stopAlarm() {
+  alarmAudio.pause();
+  page-ring.classList.add("hidden");
+  backMain();
+}
+
+function snoozeAlarm() {
+  ringingAlarm.time = Date.now() + ringingAlarm.snooze * 60000;
+  ringingAlarm.done = false;
+  stopAlarm();
+}
+
+/* ================= SETTINGS ================= */
+function loadRingtone(e) {
+  ringtoneURL = URL.createObjectURL(e.target.files[0]);
+  localStorage.setItem("ringtone", ringtoneURL);
+}
+
+function setVolume(v) {
+  volume = v;
+  localStorage.setItem("volume", v);
+}
+
+/* ================= NAV ================= */
+function openSettings() {
+  page-main.classList.add("hidden");
+  page-settings.classList.remove("hidden");
+}
+
+function openList() {
+  page-main.classList.add("hidden");
+  page-list.classList.remove("hidden");
+  renderList();
+}
+
+function backMain() {
+  page-settings.classList.add("hidden");
+  page-list.classList.add("hidden");
+  page-main.classList.remove("hidden");
+}
+
+function renderList() {
+  alarmList.innerHTML = "";
+  alarms.forEach((a, i) => {
+    const r = document.createElement("div");
+    r.className = "alarm-row";
+    r.innerHTML = `
+      <input type="checkbox" data-i="${i}">
+      <div>${new Date(a.time).toLocaleTimeString()} - ${a.label}</div>
+      <input type="checkbox" ${a.enabled ? "checked" : ""} onchange="alarms[${i}].enabled=this.checked">
+    `;
+    alarmList.appendChild(r);
+  });
+}
+
+function deleteSelected() {
+  alarms = alarms.filter((_, i) =>
+    !document.querySelector(`input[data-i="${i}"]`)?.checked
+  );
+  localStorage.setItem("alarms", JSON.stringify(alarms));
+  renderList();
+}
+
+/* ================= MANIFEST ================= */
+const manifest = {
+  name: "Easy Alarm",
+  short_name: "Alarm",
+  start_url: ".",
+  display: "standalone",
+  background_color: "#1976d2",
+  theme_color: "#1976d2"
+};
+const blob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
+manifestLink.href = URL.createObjectURL(blob);
 </script>
 
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js")
-    .then(() => console.log("Service Worker registered"))
-    .catch(err => console.error("SW registration failed", err));
-}
-</script>
 </body>
 </html>
