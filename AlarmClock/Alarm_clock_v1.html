@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Easy Alarm</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.json">
+
+<style>
+body {
+  margin:0;
+  font-family: system-ui;
+  background:#f4f6f8;
+}
+header {
+  background:#1e88e5;
+  color:#fff;
+  padding:16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.clock {
+  font-size:40px;
+  text-align:center;
+  margin:20px 0;
+}
+.pane {
+  display:flex;
+  height:300px;
+}
+.left, .right {
+  overflow-y:auto;
+  padding:10px;
+}
+.left { width:35%; }
+.right { width:65%; }
+
+.num {
+  padding:10px;
+  margin:6px;
+  background:#fff;
+  border-radius:8px;
+  text-align:center;
+  cursor:pointer;
+  box-shadow:0 2px 4px rgba(0,0,0,.15);
+}
+
+footer {
+  display:flex;
+  justify-content:space-between;
+  padding:16px;
+}
+button {
+  background:#1e88e5;
+  color:white;
+  border:none;
+  padding:12px 18px;
+  border-radius:8px;
+  font-size:16px;
+}
+input {
+  width:100%;
+  padding:10px;
+  font-size:16px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div>Easy Alarm</div>
+  <button onclick="location.href='settings.html'">Settings</button>
+</header>
+
+<div class="clock" id="clock"></div>
+
+<div class="pane">
+  <div class="left" id="hours"></div>
+  <div class="right" id="minutes"></div>
+</div>
+
+<div style="padding:16px">
+  <input id="label" placeholder="Alarm Label">
+</div>
+
+<footer>
+  <select id="snooze">
+    <option value="5">Snooze 5 min</option>
+    <option value="10">Snooze 10 min</option>
+    <option value="15">Snooze 15 min</option>
+  </select>
+  <button onclick="saveAlarm()">Save</button>
+</footer>
+
+<script>
+let alarmTime = new Date();
+
+function updateClock() {
+  let h = alarmTime.getHours();
+  let m = alarmTime.getMinutes();
+  let ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  document.getElementById("clock").innerText =
+    `${h}:${m.toString().padStart(2,'0')} ${ampm}`;
+}
+updateClock();
+
+for(let i=1;i<=12;i++){
+  let d=document.createElement('div');
+  d.className='num';
+  d.innerText=`+${i} hr`;
+  d.onclick=()=>{alarmTime.setHours(alarmTime.getHours()+i);updateClock();}
+  hours.appendChild(d);
+}
+
+for(let i=1;i<=60;i++){
+  let d=document.createElement('div');
+  d.className='num';
+  d.innerText=`+${i} min`;
+  d.onclick=()=>{alarmTime.setMinutes(alarmTime.getMinutes()+i);updateClock();}
+  minutes.appendChild(d);
+}
+
+function saveAlarm(){
+  let alarms = JSON.parse(localStorage.getItem("alarms")||"[]");
+  alarms.push({
+    time: alarmTime.getTime(),
+    label: label.value,
+    snooze: snooze.value,
+    enabled: true
+  });
+  localStorage.setItem("alarms", JSON.stringify(alarms));
+  location.href="alarms.html";
+}
+
+setInterval(()=>{
+  let alarms = JSON.parse(localStorage.getItem("alarms")||"[]");
+  let now = Date.now();
+  alarms.forEach((a,i)=>{
+    if(a.enabled && now>=a.time){
+      localStorage.setItem("ring", JSON.stringify(a));
+      location.href="ring.html";
+      a.enabled=false;
+    }
+  });
+  localStorage.setItem("alarms", JSON.stringify(alarms));
+},1000);
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js")
+    .then(() => console.log("Service Worker registered"))
+    .catch(err => console.error("SW registration failed", err));
+}
+</script>
+</body>
+</html>
