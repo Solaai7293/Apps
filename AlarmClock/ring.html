@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<body style="text-align:center;font-family:system-ui">
+<h1 id="time"></h1>
+<button onclick="stop()">Stop</button>
+<button onclick="snooze()">Snooze</button>
+
+<script>
+let alarm = JSON.parse(localStorage.getItem("ring"));
+let audio = new Audio(localStorage.getItem("ringtone") || "");
+audio.loop=true;
+audio.volume = localStorage.getItem("volume") || 1;
+audio.play();
+
+function stop(){ audio.pause(); history.back(); }
+function snooze(){
+  alarm.time = Date.now() + alarm.snooze*60000;
+  audio.pause();
+  let alarms = JSON.parse(localStorage.getItem("alarms"));
+  alarms.push(alarm);
+  localStorage.setItem("alarms",JSON.stringify(alarms));
+  history.back();
+}
+
+setInterval(()=>{
+  let d=new Date();
+  time.innerText=d.toLocaleTimeString();
+},1000);
+</script>
+</body>
+</html>
