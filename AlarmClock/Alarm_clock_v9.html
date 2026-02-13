@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EasySet Alarm</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --bg: #f4f7f6;
+            --text: #2d3436;
+            --accent: #00b894;
+            --countdown: #e17055;
+            --card: #ffffff;
+            --border: #dcdde1;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            /* Entire page is now allowed to scroll */
+            overflow-y: auto; 
+        }
+
+        .page {
+            display: none;
+            flex-direction: column;
+            padding: 15px;
+            box-sizing: border-box;
+            min-height: 100vh;
+        }
+
+        .active { display: flex; }
+
+        /* --- TOP CONTROL PANEL --- */
+        .top-controls {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            position: sticky; /* Keeps the clock visible while you scroll numbers */
+            top: 10px;
+            z-index: 100;
+        }
+
+        .header-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+        }
+
+        .nav-buttons { display: flex; gap: 8px; }
+
+        #digital-clock { font-size: 2.2rem; font-weight: 800; color: var(--primary); margin: 0; }
+        #countdown-banner { color: var(--countdown); font-weight: 600; font-size: 0.95rem; }
+
+        #label-input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            box-sizing: border-box;
+            font-size: 1rem;
+            background: #fdfdfd;
+        }
+
+        .action-row { display: flex; gap: 12px; }
+
+        .snooze-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f1f2f6;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        #snooze-select {
+            border: none; background: transparent; font-size: 1rem; font-weight: 600; flex: 1;
+        }
+
+        /* --- FULL GRID (NO INTERNAL SCROLL) --- */
+        .selection-pane {
+            display: flex;
+            background: var(--card);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            margin-bottom: 30px;
+            /* No overflow:hidden here, let it expand */
+        }
+
+        .pane-left { width: 35%; border-right: 1px solid var(--border); padding: 15px; }
+        .pane-right { width: 65%; padding: 15px; }
+
+        .grid { display: grid; gap: 10px; }
+        .grid-hours { grid-template-columns: repeat(2, 1fr); }
+        .grid-mins { grid-template-columns: repeat(4, 1fr); }
+
+        .num-btn {
+            background: #f1f2f6; border: none; padding: 20px 0;
+            border-radius: 12px; font-weight: 700; cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        .num-btn.selected { background: var(--primary); color: white; }
+
+        /* --- BUTTONS --- */
+        .btn { border: none; font-weight: 800; cursor: pointer; border-radius: 12px; }
+        .btn-save { background: var(--accent); color: white; padding: 15px 25px; font-size: 1rem; }
+        .btn-nav { background: #dfe6e9; color: var(--text); padding: 8px 12px; font-size: 0.75rem; }
+
+        /* Ringing Screen */
+        #ringing-screen { 
+            position: fixed; inset: 0; background: var(--primary); color: white; 
+            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; 
+        }
+
+        .alarm-item { background: white; padding: 15px; border-radius: 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+    </style>
+</head>
+<body>
+
+    <div id="main-page" class="page active">
+        <div class="top-controls">
+            <div class="header-row">
+                <div id="digital-clock">12:00 PM</div>
+                <div class="nav-buttons">
+                    <button class="btn btn-nav" onclick="go('list-page')">Alarms</button>
+                    <button class="btn btn-nav" onclick="go('settings-page')">Settings</button>
+                </div>
+            </div>
+            
+            <div id="countdown-banner">Select hours/mins below</div>
+
+            <input type="text" id="label-input" placeholder="Alarm Label">
+
+            <div class="action-row">
+                <div class="snooze-wrapper">
+                    <span style="font-size: 0.8rem;">Snooze:</span>
+                    <select id="snooze-select">
+                        <option value="5">5m</option>
+                        <option value="10">10m</option>
+                        <option value="15">15m</option>
+                    </select>
+                </div>
+                <button class="btn btn-save" onclick="saveAlarm()">SAVE ALARM</button>
+            </div>
+        </div>
+
+        <div class="selection-pane">
+            <div class="pane-left"><div class="grid grid-hours" id="hours-grid"></div></div>
+            <div class="pane-right"><div class="grid grid-mins" id="mins-grid"></div></div>
+        </div>
+    </div>
+
+    <div id="list-page" class="page">
+        <div class="header-row" style="margin-bottom: 20px;">
+            <h2 style="margin:0;">Alarm List</h2>
+            <button class="btn btn-save" style="padding:10px 20px;" onclick="go('main-page')">+ ADD NEW</button>
+        </div>
+        <div id="alarms-container"></div>
+        <button class="btn" style="background:#ff7675; color:white; padding:18px; margin-top:auto; width:100%;" onclick="deleteSelected()">DELETE SELECTED</button>
+    </div>
+
+    <div id="settings-page" class="page">
+        <h2>Settings</h2>
+        <div style="background:white; padding:25px; border-radius:20px;">
+            <p><strong>Custom MP3:</strong></p>
+            <input type="file" id="ringtone-file" accept="audio/*">
+            <p style="margin-top:20px;"><strong>Volume:</strong></p>
+            <input type="range" id="vol-slider" min="0" max="1" step="0.1" value="0.7" style="width:100%;">
+        </div>
+        <button class="btn" onclick="go('main-page')" style="margin-top:20px; background:#dfe6e9; padding:18px; width:100%;">BACK</button>
+    </div>
+
+    <div id="ringing-screen">
+        <h1 id="big-ring-clock" style="font-size: 5rem;">00:00</h1>
+        <h2 id="ring-label-disp">Alarm!</h2>
+        <div style="display:flex; gap:20px; width:80%;">
+            <button class="btn" style="background:white; color:var(--primary); padding:20px; flex:1;" onclick="stopAlarm()">STOP</button>
+            <button class="btn" style="background:rgba(255,255,255,0.2); color:white; border:1px solid white; padding:20px; flex:1;" onclick="snoozeCurrent()">SNOOZE</button>
+        </div>
+    </div>
+
+    <audio id="alarm-audio" loop></audio>
+
+    <script>
+        let selectedH = null;
+        let selectedM = null;
+        let alarms = [];
+        let ringingAlarm = null;
+
+        function init() {
+            const hGrid = document.getElementById('hours-grid');
+            for(let i=1; i<=12; i++) {
+                let b = document.createElement('button'); b.className = 'num-btn'; b.innerText = i;
+                b.onclick = () => toggleVal('h', i, b); hGrid.appendChild(b);
+            }
+            const mGrid = document.getElementById('mins-grid');
+            for(let i=1; i<=60; i++) {
+                let b = document.createElement('button'); b.className = 'num-btn'; b.innerText = i;
+                b.onclick = () => toggleVal('m', i, b); mGrid.appendChild(b);
+            }
+            setInterval(updateDisplay, 1000);
+            setInterval(checkAlarms, 1000);
+        }
+
+        function toggleVal(type, val, el) {
+            if(type === 'h') {
+                selectedH = (selectedH === val) ? null : val;
+                document.querySelectorAll('.pane-left .num-btn').forEach(btn => btn.classList.remove('selected'));
+            } else {
+                selectedM = (selectedM === val) ? null : val;
+                document.querySelectorAll('.pane-right .num-btn').forEach(btn => btn.classList.remove('selected'));
+            }
+            if ((type==='h' && selectedH !== null) || (type==='m' && selectedM !== null)) el.classList.add('selected');
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            let now = new Date();
+            let target = new Date(now.getTime());
+            if(selectedH) target.setHours(target.getHours() + selectedH);
+            if(selectedM) target.setMinutes(target.getMinutes() + selectedM);
+
+            let h = target.getHours();
+            let ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            let m = target.getMinutes().toString().padStart(2, '0');
+            document.getElementById('digital-clock').innerText = `${h}:${m} ${ampm}`;
+
+            if(selectedH === null && selectedM === null) {
+                document.getElementById('countdown-banner').innerText = "Tap numbers to add time";
+            } else {
+                let diff = target.getTime() - now.getTime();
+                let dH = Math.floor(diff / 3600000);
+                let dM = Math.floor((diff % 3600000) / 60000);
+                document.getElementById('countdown-banner').innerText = `Alarm in: ${dH > 0 ? dH + 'h ' : ''}${dM}m`;
+            }
+            return target;
+        }
+
+        function saveAlarm() {
+            let time = updateDisplay();
+            alarms.push({ id: Date.now(), time: time.getTime(), label: document.getElementById('label-input').value || "Alarm", snooze: parseInt(document.getElementById('snooze-select').value), active: true, checked: false });
+            selectedH = null; selectedM = null;
+            document.querySelectorAll('.num-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById('label-input').value = "";
+            go('list-page');
+        }
+
+        function renderAlarms() {
+            const container = document.getElementById('alarms-container');
+            container.innerHTML = '';
+            alarms.forEach(a => {
+                let d = new Date(a.time);
+                container.innerHTML += `<div class="alarm-item"><input type="checkbox" onchange="toggleCheck(${a.id})"><div><strong>${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</strong><br><small>${a.label}</small></div><input type="checkbox" style="width:25px;height:25px" ${a.active ? 'checked' : ''} onchange="toggleActive(${a.id})"></div>`;
+            });
+        }
+
+        function toggleActive(id) { let a = alarms.find(x => x.id === id); if(a) a.active = !a.active; }
+        function toggleCheck(id) { let a = alarms.find(x => x.id === id); if(a) a.checked = !a.checked; }
+        function deleteSelected() { alarms = alarms.filter(a => !a.checked); renderAlarms(); }
+        
+        function go(p) { 
+            window.scrollTo(0,0);
+            document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active')); 
+            document.getElementById(p).classList.add('active'); 
+            if(p==='list-page') renderAlarms(); 
+        }
+        
+        function checkAlarms() {
+            let now = new Date().getTime();
+            alarms.forEach(a => { if(a.active && now >= a.time) triggerAlarm(a); });
+        }
+
+        function triggerAlarm(a) {
+            ringingAlarm = a; a.active = false;
+            document.getElementById('big-ring-clock').innerText = new Date(a.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            document.getElementById('ring-label-disp').innerText = a.label;
+            document.getElementById('ringing-screen').style.display = 'flex';
+            const audio = document.getElementById('alarm-audio');
+            audio.volume = document.getElementById('vol-slider').value;
+            audio.play().catch(()=>{});
+        }
+
+        function stopAlarm() { document.getElementById('alarm-audio').pause(); document.getElementById('ringing-screen').style.display = 'none'; renderAlarms(); }
+        function snoozeCurrent() { if(ringingAlarm) { ringingAlarm.time = new Date().getTime() + (ringingAlarm.snooze * 60000); ringingAlarm.active = true; stopAlarm(); } }
+        document.getElementById('ringtone-file').onchange = (e) => { document.getElementById('alarm-audio').src = URL.createObjectURL(e.target.files[0]); };
+
+        init();
+    </script>
+</body>
+</html>
