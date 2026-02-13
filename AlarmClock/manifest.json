@@ -1,6 +1,6 @@
 {
   "name": "Easy Alarm",
-  "short_name": "Alarm",
+  "short_name": "Easy Alarm",
   "start_url": "Alarm_clock_v9.html",
   "display": "standalone",
   "background_color": "#ffffff",
