@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f1117" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="RupeeTrack" />
+  <title>RupeeTrack – Smart Budget Manager</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-theme="dark">
+
+<!-- PIN LOCK SCREEN -->
+<div id="pinScreen" class="pin-screen">
+  <div class="pin-container">
+    <div class="pin-logo">₹</div>
+    <h2 class="pin-title">RupeeTrack</h2>
+    <p class="pin-subtitle" id="pinSubtitle">Enter your PIN</p>
+    <div class="pin-dots">
+      <span class="pin-dot" id="dot0"></span>
+      <span class="pin-dot" id="dot1"></span>
+      <span class="pin-dot" id="dot2"></span>
+      <span class="pin-dot" id="dot3"></span>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-btn" onclick="pinInput('1')">1</button>
+      <button class="pin-btn" onclick="pinInput('2')">2</button>
+      <button class="pin-btn" onclick="pinInput('3')">3</button>
+      <button class="pin-btn" onclick="pinInput('4')">4</button>
+      <button class="pin-btn" onclick="pinInput('5')">5</button>
+      <button class="pin-btn" onclick="pinInput('6')">6</button>
+      <button class="pin-btn" onclick="pinInput('7')">7</button>
+      <button class="pin-btn" onclick="pinInput('8')">8</button>
+      <button class="pin-btn" onclick="pinInput('9')">9</button>
+      <button class="pin-btn pin-btn-clear" onclick="pinClear()">⌫</button>
+      <button class="pin-btn" onclick="pinInput('0')">0</button>
+      <button class="pin-btn pin-btn-ok" onclick="pinSubmit()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="app hidden">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">₹</span>
+      <span class="topbar-title">RupeeTrack</span>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">🌙</button>
+      <button class="icon-btn" onclick="openModal('settingsModal')" title="Settings">⚙️</button>
+    </div>
+  </header>
+
+  <!-- NAV TABS -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="switchTab('dashboard')" id="nav-dashboard">
+      <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('transactions')" id="nav-transactions">
+      <span class="nav-icon">💳</span><span class="nav-label">Transactions</span>
+    </button>
+    <button class="nav-btn nav-add-btn" onclick="openModal('addTxnModal')">
+      <span class="nav-icon-add">+</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('budget')" id="nav-budget">
+      <span class="nav-icon">🎯</span><span class="nav-label">Budget</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('reports')" id="nav-reports">
+      <span class="nav-icon">📈</span><span class="nav-label">Reports</span>
+    </button>
+  </nav>
+
+  <!-- DASHBOARD TAB -->
+  <div class="tab-content" id="tab-dashboard">
+    <div class="dashboard-scroll">
+
+      <!-- Month Selector -->
+      <div class="month-nav">
+        <button class="month-arrow" onclick="changeMonth(-1)">‹</button>
+        <span class="month-label" id="dashMonthLabel">April 2025</span>
+        <button class="month-arrow" onclick="changeMonth(1)">›</button>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="summary-row">
+        <div class="summary-card summary-income">
+          <div class="summary-icon">↑</div>
+          <div class="summary-info">
+            <span class="summary-label">Income</span>
+            <span class="summary-amount" id="dashIncome">₹0</span>
+          </div>
+        </div>
+        <div class="summary-card summary-expense">
+          <div class="summary-icon">↓</div>
+          <div class="summary-info">
+            <span class="summary-label">Expense</span>
+            <span class="summary-amount" id="dashExpense">₹0</span>
+          </div>
+        </div>
+      </div>
+      <div class="balance-card">
+        <span class="balance-label">Net Balance</span>
+        <span class="balance-amount" id="dashBalance">₹0</span>
+        <div class="balance-bar-wrap">
+          <div class="balance-bar-fill" id="balanceBarFill"></div>
+        </div>
+      </div>
+
+      <!-- Accounts Summary -->
+      <div class="section-header">
+        <span>Accounts</span>
+        <button class="link-btn" onclick="openModal('addAccountModal')">+ Add</button>
+      </div>
+      <div class="accounts-row" id="accountsRow"></div>
+
+      <!-- Budget Alerts -->
+      <div id="budgetAlertsSection" class="hidden">
+        <div class="section-header"><span>⚠️ Budget Alerts</span></div>
+        <div id="budgetAlertsList"></div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="section-header">
+        <span>Recent Transactions</span>
+        <button class="link-btn" onclick="switchTab('transactions')">See all</button>
+      </div>
+      <div id="recentTxnList" class="txn-list"></div>
+
+      <!-- Donut Chart -->
+      <div class="section-header"><span>Expenses by Category</span></div>
+      <div class="chart-card">
+        <canvas id="donutChart"></canvas>
+        <div id="donutLegend" class="donut-legend"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TRANSACTIONS TAB -->
+  <div class="tab-content hidden" id="tab-transactions">
+    <div class="txn-toolbar">
+      <input type="text" class="search-input" placeholder="🔍 Search transactions..." id="txnSearch" oninput="renderTransactions()" />
+      <select class="filter-select" id="txnFilterCat" onchange="renderTransactions()">
+        <option value="">All Categories</option>
+      </select>
+      <select class="filter-select" id="txnFilterType" onchange="renderTransactions()">
+        <option value="">All Types</option>
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+        <option value="transfer">Transfer</option>
+      </select>
+    </div>
+    <!-- Import Button -->
+    <div class="import-bar">
+      <button class="import-btn" onclick="openModal('importModal')">📥 Import Bank Statement (XLS/XLSX)</button>
+    </div>
+    <div id="txnList" class="txn-list txn-list-full"></div>
+  </div>
+
+  <!-- BUDGET TAB -->
+  <div class="tab-content hidden" id="tab-budget">
+    <div class="dashboard-scroll">
+      <div class="month-nav">
+        <button class="month-arrow" onclick="changeBudgetMonth(-1)">‹</button>
+        <span class="month-label" id="budgetMonthLabel">April 2025</span>
+        <button class="month-arrow" onclick="changeBudgetMonth(1)">›</button>
+      </div>
+      <div class="section-header">
+        <span>Budget Limits</span>
+        <button class="link-btn" onclick="openModal('addBudgetModal')">+ Set Budget</button>
+      </div>
+      <div id="budgetList"></div>
+      <!-- Recurring -->
+      <div class="section-header" style="margin-top:20px">
+        <span>Recurring Transactions</span>
+        <button class="link-btn" onclick="openModal('addRecurringModal')">+ Add</button>
+      </div>
+      <div id="recurringList"></div>
+    </div>
+  </div>
+
+  <!-- REPORTS TAB -->
+  <div class="tab-content hidden" id="tab-reports">
+    <div class="dashboard-scroll">
+      <div class="section-header"><span>Monthly Trend</span></div>
+      <div class="chart-card"><canvas id="trendChart"></canvas></div>
+
+      <div class="section-header" style="margin-top:16px">
+        <span>Category Monthly View</span>
+      </div>
+      <div class="cat-select-row">
+        <select class="filter-select" id="reportCatSelect" onchange="renderCategoryChart()">
+        </select>
+      </div>
+      <div class="chart-card"><canvas id="catChart"></canvas></div>
+
+      <div class="section-header" style="margin-top:16px"><span>Income vs Expense (6 months)</span></div>
+      <div class="chart-card"><canvas id="barChart"></canvas></div>
+
+      <div class="section-header" style="margin-top:16px"><span>Export Data</span></div>
+      <div class="export-row">
+        <button class="export-btn" onclick="exportCSV()">📄 Export CSV</button>
+        <button class="export-btn" onclick="exportJSON()">📦 Export JSON</button>
+        <button class="export-btn" onclick="backupDrive()">☁️ Google Drive Backup</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- ADD TRANSACTION -->
+<div class="modal-overlay hidden" id="addTxnModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Transaction</h3>
+      <button class="modal-close" onclick="closeModal('addTxnModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tab-pills">
+        <button class="pill active" onclick="setTxnType('expense',this)">Expense</button>
+        <button class="pill" onclick="setTxnType('income',this)">Income</button>
+        <button class="pill" onclick="setTxnType('transfer',this)">Transfer</button>
+      </div>
+      <input type="number" class="form-input" placeholder="Amount (₹)" id="txnAmount" />
+      <input type="text" class="form-input" placeholder="Description" id="txnDesc" />
+      <select class="form-input" id="txnCategory"></select>
+      <select class="form-input" id="txnAccount"></select>
+      <div id="txnTransferToRow" class="hidden">
+        <select class="form-input" id="txnAccountTo"></select>
+      </div>
+      <input type="date" class="form-input" id="txnDate" />
+      <input type="text" class="form-input" placeholder="Note (optional)" id="txnNote" />
+      <button class="btn-primary" onclick="addTransaction()">Add Transaction</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD ACCOUNT -->
+<div class="modal-overlay hidden" id="addAccountModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Account</h3>
+      <button class="modal-close" onclick="closeModal('addAccountModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" class="form-input" placeholder="Account Name" id="accName" />
+      <select class="form-input" id="accType">
+        <option value="cash">Cash</option>
+        <option value="bank">Bank Account</option>
+        <option value="card">Credit/Debit Card</option>
+        <option value="wallet">Wallet</option>
+      </select>
+      <input type="number" class="form-input" placeholder="Opening Balance (₹)" id="accBalance" />
+      <button class="btn-primary" onclick="addAccount()">Add Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD BUDGET -->
+<div class="modal-overlay hidden" id="addBudgetModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Set Budget</h3>
+      <button class="modal-close" onclick="closeModal('addBudgetModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <select class="form-input" id="budgetCategory"></select>
+      <input type="number" class="form-input" placeholder="Budget Limit (₹)" id="budgetLimit" />
+      <button class="btn-primary" onclick="addBudget()">Set Budget</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD RECURRING -->
+<div class="modal-overlay hidden" id="addRecurringModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Recurring Transaction</h3>
+      <button class="modal-close" onclick="closeModal('addRecurringModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" class="form-input" placeholder="Description" id="recDesc" />
+      <input type="number" class="form-input" placeholder="Amount (₹)" id="recAmount" />
+      <select class="form-input" id="recType">
+        <option value="expense">Expense</option>
+        <option value="income">Income</option>
+      </select>
+      <select class="form-input" id="recCategory"></select>
+      <select class="form-input" id="recAccount"></select>
+      <select class="form-input" id="recFrequency">
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+        <option value="yearly">Yearly</option>
+      </select>
+      <input type="date" class="form-input" id="recStartDate" />
+      <button class="btn-primary" onclick="addRecurring()">Add Recurring</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-overlay hidden" id="importModal">
+  <div class="modal modal-tall">
+    <div class="modal-header">
+      <h3>Import Bank Statement</h3>
+      <button class="modal-close" onclick="closeModal('importModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('xlsFile').click()">
+        <div class="upload-icon">📁</div>
+        <p>Tap to select XLS / XLSX file</p>
+        <input type="file" id="xlsFile" accept=".xls,.xlsx,.csv" class="hidden" onchange="handleFileUpload(event)" />
+      </div>
+      <div id="columnMapSection" class="hidden">
+        <h4 class="map-title">Map Columns</h4>
+        <p class="map-hint">Match your file's columns to the fields below:</p>
+        <div id="columnMapFields"></div>
+        <div class="section-header" style="margin-top:16px"><span>Categorization Rules</span></div>
+        <p class="map-hint">Define rules: if description contains keyword → assign category</p>
+        <div id="catRulesList"></div>
+        <button class="btn-secondary" onclick="addCatRule()">+ Add Rule</button>
+        <button class="btn-primary" style="margin-top:12px" onclick="importTransactions()">Import Transactions</button>
+      </div>
+      <div id="importPreview" class="hidden">
+        <h4 class="map-title" id="importPreviewTitle"></h4>
+        <div id="importPreviewList"></div>
+        <button class="btn-primary" onclick="confirmImport()">✓ Confirm Import</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay hidden" id="settingsModal">
+  <div class="modal modal-tall">
+    <div class="modal-header">
+      <h3>Settings</h3>
+      <button class="modal-close" onclick="closeModal('settingsModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-section">
+        <h4>Security</h4>
+        <div class="settings-row">
+          <span>PIN Lock</span>
+          <label class="toggle">
+            <input type="checkbox" id="pinToggle" onchange="togglePin()" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div id="pinSetupRow" class="hidden">
+          <input type="password" class="form-input" placeholder="Set 4-digit PIN" id="newPin" maxlength="4" />
+          <button class="btn-secondary" onclick="savePin()">Save PIN</button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h4>Categories</h4>
+        <div id="categoriesList"></div>
+        <div class="add-cat-row">
+          <input type="text" class="form-input" placeholder="New category name" id="newCatName" />
+          <select class="form-input" id="newCatType">
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
+          <button class="btn-secondary" onclick="addCategory()">Add</button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h4>Notifications</h4>
+        <div class="settings-row">
+          <span>Budget Alerts</span>
+          <label class="toggle">
+            <input type="checkbox" id="notifToggle" onchange="toggleNotifications()" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h4>Data Management</h4>
+        <button class="btn-danger" onclick="confirmClearData()">🗑️ Clear All Data</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TRANSACTION DETAIL MODAL -->
+<div class="modal-overlay hidden" id="txnDetailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Transaction Detail</h3>
+      <button class="modal-close" onclick="closeModal('txnDetailModal')">✕</button>
+    </div>
+    <div class="modal-body" id="txnDetailBody"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
