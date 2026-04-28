@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f1923" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MileageLog" />
+  <title>MileageLog</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #0a1118;
+      --bg2: #0f1923;
+      --bg3: #162231;
+      --panel: #1a2a3a;
+      --border: #1e3a50;
+      --accent: #00d4ff;
+      --accent2: #00ff9d;
+      --accent3: #ff6b35;
+      --text: #e0eaf4;
+      --text2: #7ca4be;
+      --text3: #4a7a9b;
+      --danger: #ff4757;
+      --row-odd: #111d29;
+      --row-even: #0e1820;
+      --input-bg: #0d1d2a;
+      --header-bg: #061018;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Exo 2', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* === HEADER === */
+    .app-header {
+      background: var(--header-bg);
+      border-bottom: 2px solid var(--accent);
+      padding: 14px 16px 10px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,212,255,0.15);
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .app-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .app-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+
+    .app-subtitle {
+      font-size: 11px;
+      color: var(--text3);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 2px 0;
+    }
+    .stats-bar::-webkit-scrollbar { display: none; }
+
+    .stat-chip {
+      flex-shrink: 0;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+    .stat-chip .label { color: var(--text3); }
+    .stat-chip .value { color: var(--accent2); font-family: 'Share Tech Mono', monospace; font-weight: 600; }
+
+    /* === TABLE WRAPPER === */
+    .table-wrapper {
+      overflow-x: auto;
+      padding: 12px 0 80px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+    }
+
+    thead tr {
+      background: var(--header-bg);
+      border-bottom: 2px solid var(--accent);
+    }
+
+    th {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      color: var(--accent);
+      text-transform: uppercase;
+      padding: 10px 8px;
+      text-align: right;
+      white-space: nowrap;
+    }
+    th:first-child { text-align: center; width: 42px; }
+    th.input-col { color: var(--accent2); }
+
+    /* === ROWS === */
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    tbody tr:nth-child(odd)  { background: var(--row-odd); }
+    tbody tr:nth-child(even) { background: var(--row-even); }
+    tbody tr:hover { background: var(--bg3); }
+    tbody tr.new-row { animation: rowSlideIn 0.3s ease; }
+
+    @keyframes rowSlideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    td {
+      padding: 6px 6px;
+      text-align: right;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+    td:first-child {
+      text-align: center;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text3);
+      width: 42px;
+    }
+
+    /* === INPUTS === */
+    td input {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      padding: 6px 6px;
+      width: 100%;
+      text-align: right;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+    }
+    td input:focus {
+      border-color: var(--accent2);
+      box-shadow: 0 0 0 2px rgba(0,255,157,0.15);
+    }
+    td input::placeholder { color: var(--text3); font-size: 11px; }
+
+    /* === CALCULATED CELLS === */
+    .calc-cell {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+      padding-right: 8px;
+    }
+    .calc-cell.hyphen { color: var(--text3); }
+    .calc-cell.mileage { color: var(--accent); }
+    .calc-cell.expense { color: var(--accent3); }
+    .calc-cell.kms { color: var(--accent2); }
+
+    /* === DELETE BUTTON === */
+    .del-btn {
+      background: none;
+      border: none;
+      color: var(--text3);
+      cursor: pointer;
+      font-size: 15px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      line-height: 1;
+      transition: color 0.2s, background 0.2s;
+    }
+    .del-btn:active { color: var(--danger); background: rgba(255,71,87,0.1); }
+
+    /* === TOTALS ROW === */
+    tfoot tr {
+      background: var(--header-bg);
+      border-top: 2px solid var(--accent);
+    }
+    tfoot td {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent2);
+      padding: 10px 8px;
+    }
+    tfoot td:first-child { color: var(--text3); font-size: 11px; text-align: center; }
+    tfoot .total-label { color: var(--text2); letter-spacing: 1px; text-transform: uppercase; }
+    tfoot .avg-cell { color: var(--accent); }
+    tfoot .exp-cell { color: var(--accent3); }
+
+    /* === ADD ROW BUTTON === */
+    .add-row-wrap {
+      padding: 14px 16px;
+    }
+
+    .add-row-btn {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(0,255,157,0.08));
+      border: 1.5px dashed var(--accent2);
+      border-radius: 10px;
+      color: var(--accent2);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .add-row-btn:active {
+      background: linear-gradient(135deg, rgba(0,212,255,0.18), rgba(0,255,157,0.18));
+      transform: scale(0.98);
+    }
+    .add-row-btn .plus { font-size: 20px; }
+
+    /* === EMPTY STATE === */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text3);
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; line-height: 1.6; }
+
+    /* === SNACKBAR === */
+    .snackbar {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--panel);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 13px;
+      color: var(--accent);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 200;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .snackbar.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* === SCROLLBAR === */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* === INPUT COLUMN WIDTHS === */
+    .col-odo { min-width: 90px; }
+    .col-litres { min-width: 70px; }
+    .col-rupees { min-width: 75px; }
+    .col-kms { min-width: 70px; }
+    .col-mileage { min-width: 72px; }
+    .col-expense { min-width: 75px; }
+    .col-del { width: 36px; }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-top">
+    <div class="app-icon">🚗</div>
+    <div>
+      <div class="app-title">MileageLog</div>
+      <div class="app-subtitle">Car Fuel Tracker</div>
+    </div>
+  </div>
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-chip"><span class="label">Fills</span><span class="value" id="statFills">0</span></div>
+    <div class="stat-chip"><span class="label">Total KMs</span><span class="value" id="statKms">—</span></div>
+    <div class="stat-chip"><span class="label">Avg Mileage</span><span class="value" id="statMileage">—</span></div>
+    <div class="stat-chip"><span class="label">Total ₹</span><span class="value" id="statRupees">—</span></div>
+    <div class="stat-chip"><span class="label">Total L</span><span class="value" id="statLitres">—</span></div>
+  </div>
+</header>
+
+<div class="table-wrapper">
+  <table id="mainTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th class="col-odo input-col">Odometer<br><small>Kms</small></th>
+        <th class="col-litres input-col">Petrol<br><small>Litres</small></th>
+        <th class="col-rupees input-col">Rupees<br><small>₹</small></th>
+        <th class="col-kms">Kms<br><small>Traveled</small></th>
+        <th class="col-mileage">Mileage<br><small>Kmpl</small></th>
+        <th class="col-expense">₹ / Km</th>
+        <th class="col-del"></th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+    <tfoot id="tableFoot" style="display:none">
+      <tr>
+        <td></td>
+        <td class="total-label" colspan="2" style="text-align:left;padding-left:8px;">TOTALS</td>
+        <td class="calc-cell" id="totRupees"></td>
+        <td class="calc-cell kms" id="totKms"></td>
+        <td class="calc-cell avg-cell" id="totMileage"></td>
+        <td class="calc-cell exp-cell" id="totExpense"></td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+  <div id="emptyState" class="empty-state">
+    <div class="icon">⛽</div>
+    <p>No fuel entries yet.<br>Tap <strong>+ Add Entry</strong> below to start tracking.</p>
+  </div>
+</div>
+
+<div class="add-row-wrap">
+  <button class="add-row-btn" id="addRowBtn">
+    <span class="plus">+</span> Add Entry
+  </button>
+</div>
+
+<div class="snackbar" id="snackbar"></div>
+
+<script>
+  const STORAGE_KEY = 'mileagelog_v2';
+  let rows = [];
+  let nextId = 1;
+
+  // ── Load ──
+  function load() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const data = JSON.parse(saved);
+        rows = data.rows || [];
+        nextId = data.nextId || (rows.length + 1);
+      }
+    } catch(e) {}
+  }
+
+  // ── Save ──
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ rows, nextId }));
+    } catch(e) {}
+  }
+
+  // ── Format number: no trailing decimals if whole ──
+  function fmt(val, decimals = 2) {
+    if (val === null || val === undefined || isNaN(val)) return null;
+    const n = parseFloat(val);
+    if (isNaN(n)) return null;
+    // show up to `decimals` decimals, trim trailing zeros
+    return parseFloat(n.toFixed(decimals)).toString();
+  }
+
+  // ── Calculate derived fields for a row index ──
+  function calcRow(idx) {
+    const row = rows[idx];
+    const prev = idx > 0 ? rows[idx - 1] : null;
+
+    const odo = row.odo !== '' && row.odo !== null ? parseFloat(row.odo) : null;
+    const litres = row.litres !== '' && row.litres !== null ? parseFloat(row.litres) : null;
+    const rupees = row.rupees !== '' && row.rupees !== null ? parseFloat(row.rupees) : null;
+    const prevOdo = prev && prev.odo !== '' && prev.odo !== null ? parseFloat(prev.odo) : null;
+
+    let kms = null, mileage = null, expense = null;
+
+    if (odo !== null && prevOdo !== null && !isNaN(odo) && !isNaN(prevOdo)) {
+      kms = odo - prevOdo;
+    }
+    if (kms !== null && litres !== null && litres !== 0) {
+      mileage = kms / litres;
+    }
+    if (kms !== null && rupees !== null && rupees !== 0) {
+      expense = rupees / kms;
+    }
+
+    return { kms, mileage, expense };
+  }
+
+  // ── Add new row ──
+  function addRow() {
+    rows.push({ id: nextId++, odo: '', litres: '', rupees: '' });
+    save();
+    render();
+    // focus first input of new row
+    setTimeout(() => {
+      const inputs = document.querySelectorAll('tbody tr:last-child input');
+      if (inputs[0]) inputs[0].focus();
+    }, 100);
+  }
+
+  // ── Delete row ──
+  function deleteRow(idx) {
+    if (rows.length === 0) return;
+    rows.splice(idx, 1);
+    save();
+    render();
+    showSnack('Entry removed');
+  }
+
+  // ── Handle input change ──
+  function onInput(idx, field, value) {
+    rows[idx][field] = value;
+    save();
+    updateCalcCells(idx);
+    // also update the next row's calculated cells since kms traveled depends on prev odo
+    if (field === 'odo' && idx + 1 < rows.length) {
+      updateCalcCells(idx + 1);
+    }
+    updateFooter();
+    updateStats();
+  }
+
+  // ── Update calculated cells for a single row (no full re-render) ──
+  function updateCalcCells(idx) {
+    const tr = document.querySelector(`tbody tr[data-idx="${idx}"]`);
+    if (!tr) return;
+    const { kms, mileage, expense } = calcRow(idx);
+
+    const kmsEl = tr.querySelector('.calc-kms');
+    const milEl = tr.querySelector('.calc-mileage');
+    const expEl = tr.querySelector('.calc-expense');
+
+    setCellValue(kmsEl, fmt(kms), 'kms');
+    setCellValue(milEl, fmt(mileage, 2), 'mileage');
+    setCellValue(expEl, fmt(expense, 2), 'expense');
+  }
+
+  function setCellValue(el, val, type) {
+    if (!el) return;
+    if (val === null) {
+      el.textContent = '—';
+      el.className = `calc-cell hyphen`;
+    } else {
+      el.textContent = (type === 'expense' ? '₹ ' : '') + val;
+      el.className = `calc-cell ${type}`;
+    }
+  }
+
+  // ── Full render ──
+  function render() {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    const empty = document.getElementById('emptyState');
+    const foot = document.getElementById('tableFoot');
+
+    if (rows.length === 0) {
+      empty.style.display = 'block';
+      foot.style.display = 'none';
+      updateStats();
+      return;
+    }
+    empty.style.display = 'none';
+    foot.style.display = '';
+
+    rows.forEach((row, idx) => {
+      const { kms, mileage, expense } = calcRow(idx);
+      const tr = document.createElement('tr');
+      tr.dataset.idx = idx;
+
+      const fmtKms = fmt(kms);
+      const fmtMil = fmt(mileage, 2);
+      const fmtExp = fmt(expense, 2);
+
+      tr.innerHTML = `
+        <td>${idx + 1}</td>
+        <td><input type="number" inputmode="decimal" placeholder="e.g. 38542"
+          value="${row.odo}" data-field="odo" data-idx="${idx}" class="col-odo" /></td>
+        <td><input type="number" inputmode="decimal" placeholder="e.g. 5"
+          value="${row.litres}" data-field="litres" data-idx="${idx}" class="col-litres" /></td>
+        <td><input type="number" inputmode="decimal" placeholder="e.g. 505"
+          value="${row.rupees}" data-field="rupees" data-idx="${idx}" class="col-rupees" /></td>
+        <td class="calc-cell ${fmtKms === null ? 'hyphen' : 'kms'} calc-kms">
+          ${fmtKms === null ? '—' : fmtKms}</td>
+        <td class="calc-cell ${fmtMil === null ? 'hyphen' : 'mileage'} calc-mileage">
+          ${fmtMil === null ? '—' : fmtMil}</td>
+        <td class="calc-cell ${fmtExp === null ? 'hyphen' : 'expense'} calc-expense">
+          ${fmtExp === null ? '—' : '₹ ' + fmtExp}</td>
+        <td><button class="del-btn" data-del="${idx}" title="Delete">✕</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    updateFooter();
+    updateStats();
+    attachInputListeners();
+  }
+
+  // ── Attach input listeners (after render) ──
+  function attachInputListeners() {
+    document.querySelectorAll('tbody input').forEach(input => {
+      input.addEventListener('input', e => {
+        const idx = parseInt(e.target.dataset.idx);
+        const field = e.target.dataset.field;
+        onInput(idx, field, e.target.value);
+      });
+    });
+    document.querySelectorAll('.del-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        const idx = parseInt(e.target.dataset.del);
+        deleteRow(idx);
+      });
+    });
+  }
+
+  // ── Footer totals ──
+  function updateFooter() {
+    let totR = 0, totL = 0, hasR = false, hasL = false;
+    let totalKms = 0, hasKms = false;
+    let totalKmsForMileage = 0, totalLitresForMileage = 0;
+    let totalKmsForExpense = 0, totalRupeesForExpense = 0;
+
+    rows.forEach((row, idx) => {
+      const { kms } = calcRow(idx);
+      const r = row.rupees !== '' ? parseFloat(row.rupees) : null;
+      const l = row.litres !== '' ? parseFloat(row.litres) : null;
+      if (r !== null && !isNaN(r)) { totR += r; hasR = true; }
+      if (l !== null && !isNaN(l)) { totL += l; hasL = true; }
+      if (kms !== null) {
+        totalKms += kms; hasKms = true;
+        if (l !== null && !isNaN(l)) { totalKmsForMileage += kms; totalLitresForMileage += l; }
+        if (r !== null && !isNaN(r)) { totalKmsForExpense += kms; totalRupeesForExpense += r; }
+      }
+    });
+
+    const avgMileage = totalLitresForMileage > 0 ? totalKmsForMileage / totalLitresForMileage : null;
+    const avgExpense = totalKmsForExpense > 0 ? totalRupeesForExpense / totalKmsForExpense : null;
+
+    document.getElementById('totRupees').textContent = hasR ? '₹ ' + fmt(totR, 2) : '—';
+    document.getElementById('totKms').textContent = hasKms ? fmt(totalKms) + ' km' : '—';
+    document.getElementById('totMileage').textContent = avgMileage !== null ? fmt(avgMileage, 2) + ' kmpl' : '—';
+    document.getElementById('totExpense').textContent = avgExpense !== null ? '₹ ' + fmt(avgExpense, 2) : '—';
+  }
+
+  // ── Stats bar ──
+  function updateStats() {
+    let totalKms = 0, hasKms = false;
+    let totR = 0, hasR = false;
+    let totL = 0, hasL = false;
+    let totalKmsForMileage = 0, totalLitresForMileage = 0;
+
+    rows.forEach((row, idx) => {
+      const { kms } = calcRow(idx);
+      const r = row.rupees !== '' ? parseFloat(row.rupees) : null;
+      const l = row.litres !== '' ? parseFloat(row.litres) : null;
+      if (r !== null && !isNaN(r)) { totR += r; hasR = true; }
+      if (l !== null && !isNaN(l)) { totL += l; hasL = true; }
+      if (kms !== null) { totalKms += kms; hasKms = true; }
+      if (kms !== null && l !== null && !isNaN(l)) {
+        totalKmsForMileage += kms; totalLitresForMileage += l;
+      }
+    });
+
+    const avgMileage = totalLitresForMileage > 0 ? totalKmsForMileage / totalLitresForMileage : null;
+
+    document.getElementById('statFills').textContent = rows.length;
+    document.getElementById('statKms').textContent = hasKms ? fmt(totalKms) + ' km' : '—';
+    document.getElementById('statMileage').textContent = avgMileage !== null ? fmt(avgMileage, 2) + ' kmpl' : '—';
+    document.getElementById('statRupees').textContent = hasR ? '₹' + fmt(totR, 2) : '—';
+    document.getElementById('statLitres').textContent = hasL ? fmt(totL, 2) + ' L' : '—';
+  }
+
+  // ── Snackbar ──
+  function showSnack(msg) {
+    const s = document.getElementById('snackbar');
+    s.textContent = msg;
+    s.classList.add('show');
+    setTimeout(() => s.classList.remove('show'), 2000);
+  }
+
+  // ── Init ──
+  load();
+  render();
+  document.getElementById('addRowBtn').addEventListener('click', addRow);
+
+  // ── Register Service Worker ──
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
