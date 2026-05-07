@@ -3,65 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Money Manager</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="manifest" href="manifest.json">
+    <title>Money Manager Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #9e9e9e;
+            --income: #4a90e2;
+            --expense: #e94b3c;
+            --accent: #ff5252;
+        }
+
+        body { 
+            background: var(--bg); color: var(--text-primary); 
+            font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 80px; 
+        }
+
+        /* Top Nav & Summary */
+        header { background: var(--surface); position: sticky; top: 0; z-index: 10; }
+        .top-tabs { display: flex; justify-content: space-around; border-bottom: 1px solid #333; }
+        .top-tabs div { padding: 12px; font-size: 0.9rem; color: var(--text-secondary); cursor: pointer; }
+        .top-tabs div.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+        
+        .summary { display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; padding: 15px 0; }
+        .summary p { margin: 5px 0; font-size: 0.8rem; color: var(--text-secondary); }
+        .summary span { font-weight: bold; font-size: 1.1rem; }
+
+        /* Content Areas */
+        .page { padding: 10px; display: none; }
+        .page.active { display: block; }
+
+        /* Daily Transaction List */
+        .day-block { background: var(--surface); border-radius: 8px; margin-bottom: 15px; overflow: hidden; }
+        .day-header { background: #252525; padding: 10px; display: flex; justify-content: space-between; font-size: 0.85rem; }
+        .trans-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #2a2a2a; }
+
+        /* FAB */
+        .fab { 
+            position: fixed; bottom: 85px; right: 20px; 
+            background: var(--accent); width: 56px; height: 56px; 
+            border-radius: 50%; display: flex; align-items: center; 
+            justify-content: center; font-size: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+        }
+
+        /* Bottom Nav */
+        .bottom-nav { 
+            position: fixed; bottom: 0; width: 100%; height: 65px; 
+            background: var(--surface); display: flex; justify-content: space-around; 
+            align-items: center; border-top: 1px solid #333; 
+        }
+        .nav-item { text-align: center; color: var(--text-secondary); font-size: 0.75rem; }
+
+        /* Form UI */
+        .modal { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.8); display: none; z-index: 100; 
+        }
+        .modal-content { 
+            background: var(--surface); margin-top: 20%; padding: 20px; 
+            border-radius: 15px 15px 0 0; 
+        }
+        input, select { 
+            width: 100%; padding: 12px; margin: 10px 0; 
+            background: #2a2a2a; border: 1px solid #444; color: white; border-radius: 5px; 
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <div class="top-nav">
-            <button class="active">Daily</button>
-            <button>Calendar</button>
-            <button>Monthly</button>
-            <button>Total</button>
-            <button>Note</button>
-        </div>
-        <div class="summary-bar">
-            <div class="summary-item"><span>Income</span><p class="income-text">₹ 0.00</p></div>
-            <div class="summary-item"><span>Expenses</span><p class="expense-text">₹ 0.00</p></div>
-            <div class="summary-item"><span>Total</span><p>₹ 0.00</p></div>
-        </div>
-    </header>
 
-    <main id="app-content">
-        <section id="daily-view">
-            <div class="transaction-group">
-                <div class="date-header">
-                    <span>24 Fri</span>
-                    <span class="income-text">₹ 0.00</span>
-                    <span class="expense-text">₹ 0.00</span>
-                </div>
-                </div>
-        </section>
-
-        <section id="stats-view" style="display:none;">
-            <canvas id="expenseChart"></canvas>
-            <div id="stats-list"></div>
-        </section>
-    </main>
-
-    <div class="fab" id="add-btn">+</div>
-
-    <div id="entry-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button>Income</button>
-                <button class="active">Expense</button>
-                <button>Transfer</button>
-            </div>
-            <input type="date" id="entry-date">
-            <input type="number" id="entry-amount" placeholder="₹ 0.00">
-            <select id="entry-category">
-                <option>Food</option>
-                <option>Rent</option>
-                <option>Transport</option>
-            </select>
-            <textarea placeholder="Note"></textarea>
-            <button id="save-btn">Save</button>
-        </div>
+<header>
+    <div class="top-tabs" id="topNav">
+        <div class="active" onclick="showPage('daily')">Daily</div>
+        <div onclick="showPage('calendar')">Calendar</div>
+        <div onclick="showPage('monthly')">Monthly</div>
+        <div onclick="showPage('total')">Total</div>
     </div>
+    <div class="summary">
+        <div><p>Income</p><span style="color:var(--income)">₹ <span id="sumIncome">0</span></span></div>
+        <div><p>Expenses</p><span style="color:var(--expense)">₹ <span id="sumExpense">0</span></span></div>
+        <div><p>Total Balance</p><span>₹ <span id="sumTotal">0</span></span></div>
+    </div>
+</header>
 
-    <script src="app.js"></script>
+<main>
+    <section id="daily" class="page active">
+        <div id="transactionList"></div>
+    </section>
+
+    <section id="stats" class="page">
+        <div style="padding: 10px;">
+            <div id="filterPresets">
+                <button onclick="filterRange(7)">Last 7 Days</button>
+                <button onclick="filterRange(30)">Last 30 Days</button>
+            </div>
+            <canvas id="mainChart"></canvas>
+            <div id="statsBreakdown"></div>
+        </div>
+    </section>
+
+    <section id="accounts" class="page">
+        <h3>Manage Accounts</h3>
+        <div id="accountList"></div>
+        <button onclick="addAccountPrompt()">+ Add Account</button>
+    </section>
+</main>
+
+<div class="fab" onclick="toggleModal('entryModal')">+</div>
+
+<nav class="bottom-nav">
+    <div class="nav-item" onclick="showPage('daily')">📑<br>Trans.</div>
+    <div class="nav-item" onclick="showPage('stats')">📊<br>Stats</div>
+    <div class="nav-item" onclick="showPage('accounts')">💳<br>Accounts</div>
+    <div class="nav-item">⋮<br>More</div>
+</nav>
+
+<div id="entryModal" class="modal">
+    <div class="modal-content">
+        <h2 id="modalTitle">New Expense</h2>
+        <input type="date" id="dateInput">
+        <input type="number" id="amountInput" placeholder="0.00">
+        <select id="catInput" onchange="updateSubCats()">
+            <option>🍱 Food</option>
+            <option>🏠 Rent</option>
+            <option>🚗 Transport</option>
+        </select>
+        <select id="subCatInput"></select>
+        <select id="accountSelect"></select>
+        <button style="width:100%; padding:15px; background:var(--accent); border:none; color:white; border-radius:5px;" onclick="saveTransaction()">Save Record</button>
+        <button onclick="toggleModal('entryModal')" style="width:100%; background:none; border:none; color:gray; margin-top:10px;">Cancel</button>
+    </div>
+</div>
+
+<script>
+    // Initial State
+    let transactions = JSON.parse(localStorage.getItem('tx')) || [];
+    let accounts = JSON.parse(localStorage.getItem('acc')) || [{id: 1, name: 'Main Wallet', balance: 0}];
+    let categories = {
+        "🍱 Food": ["🚚 Delivery", "🛒 Groceries", "☕ Cafe"],
+        "🚗 Transport": ["🚕 Cab/Auto", "🚌 Public Trans.", "⛽ Fuel"],
+        "🏠 Rent": ["💧 Utilities", "📶 Internet"]
+    };
+
+    function init() {
+        document.getElementById('dateInput').valueAsDate = new Date();
+        renderDaily();
+        populateAccountSelect();
+    }
+
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        if(pageId === 'stats') renderChart();
+    }
+
+    function toggleModal(id) {
+        const m = document.getElementById(id);
+        m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function saveTransaction() {
+        const tx = {
+            id: Date.now(),
+            date: document.getElementById('dateInput').value,
+            amount: parseFloat(document.getElementById('amountInput').value),
+            category: document.getElementById('catInput').value,
+            subCategory: document.getElementById('subCatInput').value,
+            account: document.getElementById('accountSelect').value,
+            type: 'expense' // Simplified for logic
+        };
+        transactions.push(tx);
+        localStorage.setItem('tx', JSON.stringify(transactions));
+        toggleModal('entryModal');
+        renderDaily();
+    }
+
+    function renderDaily() {
+        const list = document.getElementById('transactionList');
+        list.innerHTML = transactions.map(t => `
+            <div class="trans-item">
+                <div>
+                    <strong>${t.category}</strong><br>
+                    <small>${t.subCategory} | ${t.date}</small>
+                </div>
+                <span style="color:var(--expense)">- ₹${t.amount}</span>
+            </div>
+        `).join('');
+        updateSummaries();
+    }
+
+    function updateSummaries() {
+        const exp = transactions.reduce((s, t) => s + t.amount, 0);
+        document.getElementById('sumExpense').innerText = exp.toLocaleString();
+    }
+
+    function updateSubCats() {
+        const cat = document.getElementById('catInput').value;
+        const sub = document.getElementById('subCatInput');
+        sub.innerHTML = categories[cat].map(s => `<option>${s}</option>`).join('');
+    }
+
+    function populateAccountSelect() {
+        const sel = document.getElementById('accountSelect');
+        sel.innerHTML = accounts.map(a => `<option>${a.name}</option>`).join('');
+    }
+
+    window.onload = init;
+</script>
 </body>
 </html>
