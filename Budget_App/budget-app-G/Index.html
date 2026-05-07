@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Manager</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <div class="top-nav">
+            <button class="active">Daily</button>
+            <button>Calendar</button>
+            <button>Monthly</button>
+            <button>Total</button>
+            <button>Note</button>
+        </div>
+        <div class="summary-bar">
+            <div class="summary-item"><span>Income</span><p class="income-text">₹ 0.00</p></div>
+            <div class="summary-item"><span>Expenses</span><p class="expense-text">₹ 0.00</p></div>
+            <div class="summary-item"><span>Total</span><p>₹ 0.00</p></div>
+        </div>
+    </header>
+
+    <main id="app-content">
+        <section id="daily-view">
+            <div class="transaction-group">
+                <div class="date-header">
+                    <span>24 Fri</span>
+                    <span class="income-text">₹ 0.00</span>
+                    <span class="expense-text">₹ 0.00</span>
+                </div>
+                </div>
+        </section>
+
+        <section id="stats-view" style="display:none;">
+            <canvas id="expenseChart"></canvas>
+            <div id="stats-list"></div>
+        </section>
+    </main>
+
+    <div class="fab" id="add-btn">+</div>
+
+    <div id="entry-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button>Income</button>
+                <button class="active">Expense</button>
+                <button>Transfer</button>
+            </div>
+            <input type="date" id="entry-date">
+            <input type="number" id="entry-amount" placeholder="₹ 0.00">
+            <select id="entry-category">
+                <option>Food</option>
+                <option>Rent</option>
+                <option>Transport</option>
+            </select>
+            <textarea placeholder="Note"></textarea>
+            <button id="save-btn">Save</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
