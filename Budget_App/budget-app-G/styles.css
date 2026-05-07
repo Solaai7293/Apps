@@ -1,0 +1,47 @@
+:root {
+    --bg-color: #1a1a1a;
+    --card-bg: #2d2d2d;
+    --text-main: #ffffff;
+    --income-blue: #4a90e2;
+    --expense-red: #e94b3c;
+    --accent: #ff6b6b;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: sans-serif;
+    margin: 0;
+    padding-bottom: 70px;
+}
+
+.top-nav {
+    display: flex;
+    justify-content: space-around;
+    background: #252525;
+    padding: 10px 0;
+    border-bottom: 1px solid #333;
+}
+
+.summary-bar {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    background: #1e1e1e;
+    text-align: center;
+}
+
+.fab {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--accent);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 30px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
